@@ -1,0 +1,97 @@
+From dd433306f249db81f1ef5cfffefeb2d0ad4e3115 Mon Sep 17 00:00:00 2001
+From: William Cohen <wcohen@redhat.com>
+Date: Tue, 10 Mar 2015 10:52:39 -0400
+Subject: [PATCH] Ensure that umask is set if the extra bits (edge, inv, cmask)
+ are used
+
+When testing ocount on some of the Intel processor it was discovered
+that that the umask not not being set for events that specified the
+the extra bits.  Below is an example of the problem on an Intel Ivy
+Bridge processor with the event code missing the 0x03 unit masks for
+the events:
+
+$  ocount --verbose -e int_misc:recovery_cycles -e int_misc:recovery_stalls_count ls
+Final event code is 140000d
+Final event code is 144000d
+Number of events passed is 2
+Exec args are: ls
+telling child to start app
+parent says start app /usr/bin/ls
+calling perf_event_open for pid 240d
+perf_event_open returning fd 9
+perf_event_open returning fd a
+perf counter setup complete
+app 240d is running
+going into waitpid on monitored app 240d
+app process ended normally.
+Reading counter data for event int_misc
+Reading counter data for event int_misc
+
+Events were actively counted for 1070382 nanoseconds.
+Event counts (actual) for /usr/bin/ls:
+	Event                                 Count                    % time counted
+	int_misc:recovery_cycles              0                        100.00
+	int_misc:recovery_stalls_count        0                        100.00
+
+With this patch the umasks are included and the example executes correctly:
+
+$  ocount --verbose -e int_misc:recovery_cycles -e int_misc:recovery_stalls_count ls
+Final event code is 140030d
+Final event code is 144030d
+Number of events passed is 2
+Exec args are: ls
+telling child to start app
+calling perf_event_open for pid 72e1
+parent says start app /usr/bin/ls
+perf_event_open returning fd 9
+perf_event_open returning fd a
+perf counter setup complete
+app 72e1 is running
+going into waitpid on monitored app 72e1
+app process ended normally.
+Reading counter data for event int_misc
+Reading counter data for event int_misc
+
+Events were actively counted for 1216948 nanoseconds.
+Event counts (actual) for /usr/bin/ls:
+	Event                                 Count                    % time counted
+	int_misc:recovery_cycles              69,730                   100.00
+	int_misc:recovery_stalls_count        14,800                   100.00
+
+Signed-off-by: William Cohen <wcohen@redhat.com>
+---
+ libop/op_events.c | 3 +++
+ libop/op_events.h | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/libop/op_events.c b/libop/op_events.c
+index 99266c6..2badc8e 100644
+--- a/libop/op_events.c
++++ b/libop/op_events.c
+@@ -238,6 +238,9 @@ static void parse_um_entry(struct op_described_um * entry, char const * line)
+ 	if (strisprefix(c, "extra:")) {
+ 		c += 6;
+ 		entry->extra = parse_extra(c);
++		/* include the regular umask if there are real extra bits */
++		if (entry->extra != EXTRA_NONE)
++			entry->extra |= (entry->value & UMASK_MASK) << UMASK_SHIFT;
+ 		/* named mask */
+ 		c = skip_nonws(c);
+ 		c = skip_ws(c);
+diff --git a/libop/op_events.h b/libop/op_events.h
+index ec345e5..f09c830 100644
+--- a/libop/op_events.h
++++ b/libop/op_events.h
+@@ -20,6 +20,9 @@ extern "C" {
+ #include "op_types.h"
+ #include "op_list.h"
+ 
++#define UMASK_SHIFT 8
++#define UMASK_MASK 0xff
++
+ #define EXTRA_EDGE (1U << 18)
+ #define EXTRA_MIN_VAL EXTRA_EDGE
+ 
+-- 
+2.1.0
+

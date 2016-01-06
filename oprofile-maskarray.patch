@@ -1,0 +1,33 @@
+commit ef501aa609f49c06df9f33c9a7330dffd71b31b3
+Author: Maynard Johnson <maynardj@us.ibm.com>
+Date:   Thu Oct 31 11:11:06 2013 -0500
+
+    Fix handling of default named unit masks longer than 11 chars
+    
+    The handling of default unit masks that are names instead of hex
+    values is new with oprofile 0.9.9. I've discovered a bug in this
+    handling when the name exceeds 11 characters. For example, on
+    Sandybridge, the following ocount command fails:
+    
+    [mpjohn@oc1757000783 test-stuff]$ ocount -e l1d_blocks ls
+    Cannot find unit mask bank_confli for l1d_blocks
+    Unable to find unit mask info for bank_confli for event l1d_blocks
+    
+    This problem was due to the char array ('mask') being too small.
+    
+    Signed-off-by: Maynard Johnson <maynardj@us.ibm.com>
+
+diff --git a/libpe_utils/op_pe_utils.cpp b/libpe_utils/op_pe_utils.cpp
+index 177835e..9e2addb 100644
+--- a/libpe_utils/op_pe_utils.cpp
++++ b/libpe_utils/op_pe_utils.cpp
+@@ -413,8 +413,8 @@ static void _get_event_code(operf_event_t * event, op_cpu cpu_type)
+ 
+ 
+ #if defined(__i386__) || defined(__x86_64__)
++	char mask[OP_MAX_UM_NAME_LEN];
+ 	// Setup EventSelct[11:8] field for AMD
+-	char mask[12];
+ 	const char * vendor_AMD = "AuthenticAMD";
+ 	if (op_is_cpu_vendor((char *)vendor_AMD)) {
+ 		config = base_code & 0xF00ULL;
