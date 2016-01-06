@@ -1,0 +1,34 @@
+From 0246c6ba4a08378c46c17617d831d6baf0f44989 Mon Sep 17 00:00:00 2001
+From: William Cohen <wcohen@redhat.com>
+Date: Fri, 9 Jan 2015 16:44:09 -0500
+Subject: [PATCH] Allow operf to track anon_hugepage mmap entries
+
+The perf mmap information for anon_huge pages has a different filename
+("/anon_hugepage") than the mmap information for regions composed of
+normal sized pages ("//anon").  This results in opreport not being
+able to map samples collected by operf to Java methods when the Java
+VM uses statically allocated huge pages (rhbz1180512 and rhbz1180513).
+
+Signed-off-by: William Cohen <wcohen@redhat.com>
+---
+ libperf_events/operf_utils.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/libperf_events/operf_utils.cpp b/libperf_events/operf_utils.cpp
+index a87524b..90a0765 100644
+--- a/libperf_events/operf_utils.cpp
++++ b/libperf_events/operf_utils.cpp
+@@ -295,6 +295,10 @@ static void __handle_mmap_event(event_t * event)
+ 		                    strlen("//anon")) == 0)) {
+ 			mapping->is_anon_mapping = true;
+ 			strcpy(mapping->filename, "anon");
++		} else if ((strncmp(mapping->filename, "/anon_hugepage",
++		                    strlen("/anon_hugepage")) == 0)) {
++			mapping->is_anon_mapping = true;
++			strcpy(mapping->filename, "anon");
+ 		}
+ 		mapping->end_addr = (event->mmap.len == 0ULL)? 0ULL : mapping->start_addr + event->mmap.len - 1;
+ 		mapping->pgoff = event->mmap.pgoff;
+-- 
+2.1.0
+

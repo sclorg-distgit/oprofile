@@ -1,0 +1,33 @@
+commit fb9529161039e96d44b4b7396450cff04e3d9aa8
+Author: Maynard Johnson <maynardj@us.ibm.com>
+Date:   Tue Oct 15 14:58:16 2013 -0500
+
+    Fix operf/ocount default unit mask selection
+    
+    Many events (particularly in the x86* architectures)
+    require a unit mask value to specify the exact event
+    type.  For such events, a default unit mask value
+    is assigned.  When a user runs operf, ocount, or
+    opcontrol and specifies such an event but does not
+    specify a unit mask, the default unit mask should be
+    selected and used by the tool.  A bug was discovered
+    with operf and ocount where the unit mask value in
+    this situation was being set to '0' instead of the
+    default unit mask value.  This patch fixes the bug.
+    
+    Signed-off-by: Maynard Johnson <maynardj@us.ibm.com>
+
+diff --git a/libpe_utils/op_pe_utils.cpp b/libpe_utils/op_pe_utils.cpp
+index b85d175..177835e 100644
+--- a/libpe_utils/op_pe_utils.cpp
++++ b/libpe_utils/op_pe_utils.cpp
+@@ -484,7 +484,8 @@ handle_named_um:
+ 		pclose(fp);
+ 		event->evt_um = strtoull(mask, &endptr, 10);
+ 		if ((endptr >= mask) &&
+-				(endptr <= (mask + strlen(mask) - 1))) {
++				(endptr <= (mask + strlen(mask) - 2))) { // '- 2' to account for linefeed and '\0'
++
+ 			// Must be a default named unit mask
+ 			strncpy(event->um_name, mask, OP_MAX_UM_NAME_LEN);
+ 			goto handle_named_um;

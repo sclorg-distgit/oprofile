@@ -1,0 +1,71 @@
+From b869a61861e161c855379c4b5700fd352da01154 Mon Sep 17 00:00:00 2001
+From: William Cohen <wcohen@redhat.com>
+Date: Thu, 8 Jan 2015 16:37:57 -0500
+Subject: [PATCH] Avoid permanently setting POSIXLY_CORRECT environment
+ variable
+
+During testing on Fedora it was discovered that operf was setting the
+enviroment variable POSIXLY_CORRECT and this could potentially be
+observed in the children tasks that operf starts (Red Hat Bugzilla
+1178577). The operf, ocount, and opjitconv commands all ensure that
+POSIXLY_CORRECT environment variable is set when the options are
+processed with getopt_long, but they never unset the variable
+afterwards.  This patch ensures that POSIXLY_CORRECT is as it was
+before it was set.
+
+Signed-off-by: William Cohen <wcohen@redhat.com>
+---
+ opjitconv/opjitconv.c  | 5 +++++
+ pe_counting/ocount.cpp | 5 +++++
+ pe_profiling/operf.cpp | 5 +++++
+ 3 files changed, 15 insertions(+)
+
+diff --git a/pe_counting/ocount.cpp b/pe_counting/ocount.cpp
+index 07dfd0c..f7caede 100644
+--- a/pe_counting/ocount.cpp
++++ b/pe_counting/ocount.cpp
+@@ -579,6 +579,7 @@ static int _process_ocount_and_app_args(int argc, char * const argv[])
+ {
+ 	bool keep_trying = true;
+ 	int idx_of_non_options = 0;
++	char * prev_env = getenv("POSIXLY_CORRECT");
+ 	setenv("POSIXLY_CORRECT", "1", 0);
+ 	while (keep_trying) {
+ 		int option_idx = 0;
+@@ -663,6 +664,10 @@ static int _process_ocount_and_app_args(int argc, char * const argv[])
+ 			__print_usage_and_exit("ocount: unexpected end of arg parsing");
+ 		}
+ 	}
++
++	if (prev_env == NULL)
++		unsetenv("POSIXLY_CORRECT");
++
+ 	return idx_of_non_options;
+ }
+ 
+diff --git a/pe_profiling/operf.cpp b/pe_profiling/operf.cpp
+index 04a25d9..a186278 100644
+--- a/pe_profiling/operf.cpp
++++ b/pe_profiling/operf.cpp
+@@ -1258,6 +1258,7 @@ static int _process_operf_and_app_args(int argc, char * const argv[])
+ {
+ 	bool keep_trying = true;
+ 	int idx_of_non_options = 0;
++	char * prev_env = getenv("POSIXLY_CORRECT");
+ 	setenv("POSIXLY_CORRECT", "1", 0);
+ 	while (keep_trying) {
+ 		int option_idx = 0;
+@@ -1331,6 +1332,10 @@ static int _process_operf_and_app_args(int argc, char * const argv[])
+ 			__print_usage_and_exit("unexpected end of arg parsing");
+ 		}
+ 	}
++
++	if (prev_env == NULL)
++		unsetenv("POSIXLY_CORRECT");
++
+ 	return idx_of_non_options;
+ }
+ 
+-- 
+2.1.0
+
