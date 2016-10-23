@@ -1,0 +1,40 @@
+commit a99127699330dce984dba38156230ab3584d0d6e
+Author: William Cohen <wcohen@redhat.com>
+Date:   Mon Nov 30 17:13:32 2015 -0500
+
+    Make Intel Westmere and Nehalem event names unique
+    
+    The Intel Westmere and Nehalem event lists each had two events named
+    MACRO_INSTS.  The event names in the event lists need to be unique.
+    The event refererring to the Macro-fused instructions decoded (0xa6)
+    has been renamed MACRO_INSTS_FUSED to avoid the name collision with
+    MACRO_INSTS.
+    
+    Signed-off-by: William Cohen <wcohen@redhat.com>
+
+diff --git a/events/i386/nehalem/events b/events/i386/nehalem/events
+index 31a08b6..6951f35 100644
+--- a/events/i386/nehalem/events
++++ b/events/i386/nehalem/events
+@@ -68,7 +68,7 @@ event:0x87 counters:0,1,2,3 um:ild_stall minimum:6000 name:ILD_STALL : Cycles In
+ event:0x88 counters:0,1,2,3 um:br_inst_exec minimum:6000 name:BR_INST_EXEC : Counts the number of near branch instructions executed, but not necessarily retired.
+ event:0x89 counters:0,1,2,3 um:br_misp_exec minimum:6000 name:BR_MISP_EXEC : Counts the number of mispredicted conditional near branch instructions executed, but not necessarily retired.
+ event:0xA2 counters:0,1,2,3 um:resource_stalls minimum:6000 name:RESOURCE_STALLS : Counts the number of Allocator resource related stalls. Includes register renaming buffer entries, memory buffer entries. In addition to resource related stalls, this event counts some other events. Includes stalls arising during branch misprediction recovery, such as if retirement of the mispredicted branch is delayed and stalls arising while store buffer is draining from synchronizing operations.
+-event:0xA6 counters:0,1,2,3 um:one minimum:6000 name:MACRO_INSTS : Counts the number of instructions decoded that are macro-fused but not necessarily executed or retired.
++event:0xA6 counters:0,1,2,3 um:one minimum:6000 name:MACRO_INSTS_FUSED : Counts the number of instructions decoded that are macro-fused but not necessarily executed or retired.
+ event:0xA7 counters:0,1,2,3 um:one minimum:6000 name:BACLEAR_FORCE_IQ : Counts number of times a BACLEAR was forced by the Instruction Queue. The IQ is also responsible for providing conditional branch prediciton direction based on a static scheme and dynamic data provided by the L2 Branch Prediction Unit. If the conditional branch target is not found in the Target Array and the IQ predicts that the branch is taken, then the IQ will force the Branch Address Calculator to issue a BACLEAR. Each BACLEAR asserted by the BAC generates approximately an 8 cycle bubble in the instruction fetch pipeline.
+ event:0xA8 counters:0,1,2,3 um:one minimum:6000 name:LSD : Counts the number of micro-ops delivered by loop stream detector
+ event:0xAE counters:0,1,2,3 um:one minimum:6000 name:ITLB_FLUSH : Counts the number of ITLB flushes
+diff --git a/events/i386/westmere/events b/events/i386/westmere/events
+index d919867..d7b2064 100644
+--- a/events/i386/westmere/events
++++ b/events/i386/westmere/events
+@@ -48,7 +48,7 @@ event:0x87 counters:0,1,2,3 um:ild_stall minimum:2000000 name:ILD_STALL : Any In
+ event:0x88 counters:0,1,2,3 um:br_inst_exec minimum:200000 name:BR_INST_EXEC : Branch instructions executed
+ event:0x89 counters:0,1,2,3 um:br_misp_exec minimum:20000 name:BR_MISP_EXEC : Mispredicted branches executed
+ event:0xa2 counters:0,1,2,3 um:resource_stalls minimum:2000000 name:RESOURCE_STALLS : Resource related stall cycles
+-event:0xa6 counters:0,1,2,3 um:x01 minimum:2000000 name:MACRO_INSTS : Macro-fused instructions decoded
++event:0xa6 counters:0,1,2,3 um:x01 minimum:2000000 name:MACRO_INSTS_FUSED : Macro-fused instructions decoded
+ event:0xa7 counters:0,1,2,3 um:x01 minimum:2000000 name:BACLEAR_FORCE_IQ : Instruction queue forced BACLEAR
+ event:0xa8 counters:0,1,2,3 um:x01 minimum:2000000 name:LSD : Cycles when uops were delivered by the LSD
+ event:0xae counters:0,1,2,3 um:x01 minimum:2000000 name:ITLB_FLUSH : ITLB flushes
