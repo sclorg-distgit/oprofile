@@ -3,7 +3,7 @@
 Summary: System wide profiler
 Name: %{?scl_prefix}oprofile
 Version: 1.1.0
-Release: 2%{?dist}
+Release: 3%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: Development/System
 #
@@ -15,6 +15,7 @@ Requires: which
 Requires(pre): shadow-utils
 Requires(postun): shadow-utils
 %{?scl:Requires:%scl_runtime}
+Patch1010: oprofile-bz1335142.patch
 
 URL: http://oprofile.sf.net
 
@@ -84,6 +85,7 @@ agent library.
 
 %prep
 %setup -q -n oprofile-%{version} -a1
+%patch1010 -p1
 
 ./autogen.sh
 
@@ -165,6 +167,9 @@ exit 0
 %endif
 
 %changelog
+* Thu Sep 15 2015 Will Cohen <wcohen@redhat.com> - 1.1.0-3
+- Avoid duplicate event names for Nehalem and Westmere processors.
+
 * Thu Aug 13 2015 Will Cohen <wcohen@redhat.com> - 1.1.0-2
 - Locate jvm agent libjvmti in a LD_LIBRARY_PATH directory.
 
