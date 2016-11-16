@@ -1,0 +1,59 @@
+From 249fe0a4bb69e5bd2e9ee0a0667d925a86d4337c Mon Sep 17 00:00:00 2001
+From: William Cohen <wcohen@redhat.com>
+Date: Tue, 9 Aug 2016 22:25:52 -0400
+Subject: [PATCH 16/18] Only start the application if the perf events setup was
+ successful
+
+The code was starting the application before the performance events
+were setup.  In some cases the the setup of the perf events may fail
+and the code needs to verify that the performance events have been
+successfully set up before starting the application.  Changed the
+order of those steps to allow a check of the perf event setup before
+launching the application.
+
+Signed-off-by: William Cohen <wcohen@redhat.com>
+---
+ pe_counting/ocount.cpp | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/pe_counting/ocount.cpp b/pe_counting/ocount.cpp
+index 4d9c104..7717717 100644
+--- a/pe_counting/ocount.cpp
++++ b/pe_counting/ocount.cpp
+@@ -257,16 +257,6 @@ bool start_counting(void)
+ 		proc_list = ocount_options::processes;
+ 	}
+ 
+-	if (startApp) {
+-		// Tell app_PID to start the app
+-		cverb << vdebug << "telling child to start app" << endl;
+-		if (write(start_app_pipe[1], &startup, sizeof(startup)) < 0) {
+-			perror("Internal error on start_app_pipe");
+-			return false;
+-		}
+-		app_started = true;
+-	}
+-
+ 	orecord = new ocount_record(runmode, events, ocount_options::display_interval ? true : false);
+ 	bool ret;
+ 	switch (runmode) {
+@@ -300,6 +290,16 @@ bool start_counting(void)
+ 		ret = false;
+ 	}
+ 
++	if (startApp && ret != false) {
++		// Tell app_PID to start the app
++		cverb << vdebug << "telling child to start app" << endl;
++		if (write(start_app_pipe[1], &startup, sizeof(startup)) < 0) {
++			perror("Internal error on start_app_pipe");
++			return false;
++		}
++		app_started = true;
++	}
++
+ 	return ret;
+ }
+ 
+-- 
+2.7.4
+

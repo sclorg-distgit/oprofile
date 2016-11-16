@@ -3,7 +3,7 @@
 Summary: System wide profiler
 Name: %{?scl_prefix}oprofile
 Version: 1.1.0
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: Development/System
 #
@@ -16,6 +16,14 @@ Requires(pre): shadow-utils
 Requires(postun): shadow-utils
 %{?scl:Requires:%scl_runtime}
 Patch1010: oprofile-bz1335142.patch
+Patch1011: oprofile-power.patch
+Patch1012: oprofile-skylake.patch
+Patch1013: oprofile-goldmont.patch
+Patch1014: oprofile-kabylake.patch
+Patch1015: oprofile-xgene.patch
+Patch1016: oprofile-oparchive.patch
+Patch1017: oprofile-startup.patch
+Patch1018: oprofile-zseries.patch
 
 URL: http://oprofile.sf.net
 
@@ -86,6 +94,15 @@ agent library.
 %prep
 %setup -q -n oprofile-%{version} -a1
 %patch1010 -p1
+%patch1011 -p1
+%patch1012 -p1
+%patch1013 -p1
+%patch1014 -p1
+%patch1015 -p1
+%patch1016 -p1
+%patch1017 -p1
+%patch1018 -p1
+
 
 ./autogen.sh
 
@@ -167,7 +184,11 @@ exit 0
 %endif
 
 %changelog
-* Thu Sep 15 2015 Will Cohen <wcohen@redhat.com> - 1.1.0-3
+* Wed Oct 12 2016 Will Cohen <wcohen@redhat.com> - 1.1.0-4
+- Update events non-x86 architectures (aarch64, power, zseries)
+- Add support for newer Intel processors.
+
+* Thu Sep 15 2016 Will Cohen <wcohen@redhat.com> - 1.1.0-3
 - Avoid duplicate event names for Nehalem and Westmere processors.
 
 * Thu Aug 13 2015 Will Cohen <wcohen@redhat.com> - 1.1.0-2
