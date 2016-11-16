@@ -1,0 +1,119 @@
+From 3a5515f85ea2e007343c225e78cba66dde133327 Mon Sep 17 00:00:00 2001
+From: William Cohen <wcohen@redhat.com>
+Date: Wed, 6 Jul 2016 10:53:51 -0400
+Subject: [PATCH 14/18] Store samples in the archive and search the appropriate
+ places for samples
+
+Newer versions of oprofile use a oprofile_data directory in the
+current working directory to store the samples.  This presents a
+complications when data archived with oparchive.  The oparchive needs
+to include samples in the archive.  The code also needs to make sure
+that samples in the archive are used and not samples from a
+oprofile_data directory in the current working directory.
+
+Signed-off-by: William Cohen <wcohen@redhat.com>
+---
+ libpp/profile_spec.cpp   |  2 ++
+ pp/oparchive.cpp         | 39 ++++++++++++++++++++++++++++-----------
+ pp/oparchive_options.cpp |  5 ++---
+ 3 files changed, 32 insertions(+), 14 deletions(-)
+
+diff --git a/libpp/profile_spec.cpp b/libpp/profile_spec.cpp
+index cd4bd80..a10d6cc 100644
+--- a/libpp/profile_spec.cpp
++++ b/libpp/profile_spec.cpp
+@@ -102,6 +102,8 @@ void profile_spec::set_image_or_lib_name(string const & str)
+ void profile_spec::parse_archive_path(string const & str)
+ {
+ 	archive_path = op_realpath(str);
++	/* Need to force session directory default location in the archive */
++	init_op_config_dirs(OP_SESSION_DIR_DEFAULT);
+ }
+ 
+ 
+diff --git a/pp/oparchive.cpp b/pp/oparchive.cpp
+index 5b6906d..6221e14 100644
+--- a/pp/oparchive.cpp
++++ b/pp/oparchive.cpp
+@@ -232,6 +232,19 @@ int oparchive(options::spec const & spec)
+ 		}
+ 	}
+ 
++	/* place samples and other related material in easily found default directory */
++	string dest_session_dir = options::outdirectory + string(OP_SESSION_DIR_DEFAULT);
++	string dest_samples_dir = dest_session_dir + string("samples");
++
++	/* dest_session_dir is parent of dest_samples and will also created */
++
++	if (!options::list_files &&
++	    create_path(dest_samples_dir.c_str())) {
++		cerr << "Unable to create directory for "
++		     <<	dest_samples_dir << "." << endl;
++		exit (EXIT_FAILURE);
++	}
++
+ 	/* copy over each of the sample files */
+ 	list<string>::iterator sit = sample_files.begin();
+ 	list<string>::iterator const send = sample_files.end();
+@@ -245,9 +258,13 @@ int oparchive(options::spec const & spec)
+ 
+ 	for (; sit != send; ++sit) {
+ 		string sample_name = *sit;
++		/* determine the session name of sample file */
++		int offset = sample_name.find('{');
++		string base_samples_dir = sample_name.substr(0, offset-1);
++		string session = basename(base_samples_dir.c_str());
+ 		/* Get rid of the the archive_path from the name */
+-		string sample_base = sample_name.substr(archive_path.size());
+-		string sample_archive_file = options::outdirectory + sample_base;
++		string sample_base = sample_name.substr(offset);
++		string sample_archive_file = dest_samples_dir + "/" + session + "/" + sample_base;
+ 		
+ 		cverb << vdebug << sample_name << endl;
+ 		cverb << vdebug << " destp " << sample_archive_file << endl;
+@@ -268,19 +285,19 @@ int oparchive(options::spec const & spec)
+ 		cerr << "Unable to to obtain realpath for " << op_session_dir << endl;
+ 		exit (EXIT_FAILURE);
+ 	}
+-	string abi_name = string(real_session_dir) + "/abi";
+-	copy_one_file(image_ok, archive_path + abi_name,
+-	              options::outdirectory + abi_name);
++	string abi_name = string(real_session_dir) + string("/abi");
++	string dest_abi_name = dest_session_dir + string("/abi");
++	copy_one_file(image_ok, archive_path + abi_name, dest_abi_name);
+ 
+ 	/* copy over the <session-dir>/samples/oprofiled.log file */
+-	string log_name = string(real_session_dir) + string("/samples") + "/oprofiled.log";
+-	copy_one_file(image_ok, archive_path + log_name,
+-	              options::outdirectory + log_name);
++	string log_name = string(real_session_dir) + string("/samples") + string("/oprofiled.log");
++	string dest_log_name = dest_samples_dir + string("/oprofiled.log");
++	copy_one_file(image_ok, archive_path + log_name, dest_log_name);
+ 
+ 	/* copy over the <session-dir>/samples/operf.log file */
+-	log_name = string(real_session_dir) + string("/samples") + "/operf.log";
+-	copy_one_file(image_ok, archive_path + log_name,
+-	              options::outdirectory + log_name);
++	log_name = string(real_session_dir) + string("/samples") + string("/operf.log");
++	dest_log_name = dest_samples_dir + string("/operf.log");
++	copy_one_file(image_ok, archive_path + log_name, dest_log_name);
+ 
+ 	free(real_session_dir);
+ 
+diff --git a/pp/oparchive_options.cpp b/pp/oparchive_options.cpp
+index e6f2ddc..b79bf13 100644
+--- a/pp/oparchive_options.cpp
++++ b/pp/oparchive_options.cpp
+@@ -124,7 +124,6 @@ void handle_options(options::spec const & spec)
+ 
+ 	if (strncmp(op_session_dir, OP_SESSION_DIR_DEFAULT, strlen(OP_SESSION_DIR_DEFAULT)))
+ 		cerr << "NOTE: The sample data in this archive is located at " << op_session_dir << endl
+-		     << "instead of the standard location of " << OP_SESSION_DIR_DEFAULT << ".  Hence, when using opreport" << endl
+-		     << "and other post-processing tools on this archive, you must pass the following option:" << endl
+-		     << "\t--session-dir=" << op_session_dir << endl;
++		     << "and is being moved to the standard location of " << OP_SESSION_DIR_DEFAULT << "."
++		     << endl;
+ }
+-- 
+2.7.4
+

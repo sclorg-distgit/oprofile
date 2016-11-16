@@ -1,0 +1,142 @@
+From 966ef44b8c049b135773f1c6b71ab35b265e6356 Mon Sep 17 00:00:00 2001
+From: Andreas Arnez <arnez@linux.vnet.ibm.com>
+Date: Mon, 23 May 2016 16:51:04 +0200
+Subject: [PATCH 18/18] s390: Add support for z13
+
+On Wed, May 11 2016, Andreas Arnez wrote:
+
+> So far oprofile supported z Systems (s390) machines up to zEC12.  This
+> adds support for z13 as well.
+>
+> Signed-off-by: Andreas Arnez <arnez@linux.vnet.ibm.com>
+> ---
+>  events/Makefile.am  | 3 ++-
+>  libop/op_cpu_type.c | 3 +++
+>  libop/op_cpu_type.h | 1 +
+>  libop/op_events.c   | 1 +
+>  utils/ophelp.c      | 1 +
+>  5 files changed, 8 insertions(+), 1 deletion(-)
+
+Oops, that patch lacked the files in the new directory
+"events/s390/z13".  Corrected version below.  Is this OK?
+
+-- >8 --
+Subject: [PATCH] s390: Add support for z13
+
+So far oprofile supported z Systems (s390) machines up to zEC12.  This
+adds support for z13 as well.
+
+Signed-off-by: Andreas Arnez <arnez@linux.vnet.ibm.com>
+---
+ events/Makefile.am         | 3 ++-
+ events/s390/z13/events     | 8 ++++++++
+ events/s390/z13/unit_masks | 7 +++++++
+ libop/op_cpu_type.c        | 3 +++
+ libop/op_cpu_type.h        | 1 +
+ libop/op_events.c          | 1 +
+ utils/ophelp.c             | 1 +
+ 7 files changed, 23 insertions(+), 1 deletion(-)
+ create mode 100644 events/s390/z13/events
+ create mode 100644 events/s390/z13/unit_masks
+
+diff --git a/events/Makefile.am b/events/Makefile.am
+index 677b05f..29d4b5f 100644
+--- a/events/Makefile.am
++++ b/events/Makefile.am
+@@ -81,7 +81,8 @@ event_files = \
+ 	tile/tilegx/events tile/tilegx/unit_masks \
+ 	s390/z10/events s390/z10/unit_masks \
+ 	s390/z196/events s390/z196/unit_masks \
+-	s390/zEC12/events s390/zEC12/unit_masks
++	s390/zEC12/events s390/zEC12/unit_masks \
++	s390/z13/events s390/z13/unit_masks
+ 
+ install-data-local:
+ 	for i in ${event_files} ; do \
+diff --git a/events/s390/z13/events b/events/s390/z13/events
+new file mode 100644
+index 0000000..313f5b0
+--- /dev/null
++++ b/events/s390/z13/events
+@@ -0,0 +1,8 @@
++# Copyright OProfile authors
++# Copyright (c) International Business Machines, 2016.
++# Contributed by Andreas Arnez <arnez@linux.vnet.ibm.com>.
++#
++# IBM Enterprise z13 events for operf/ocount
++#
++event:0x00 counters:0 um:zero minimum:19264 name:CPU_CYCLES : Processor cycles
++event:0x01 counters:0 um:zero minimum:19264 name:INSTRUCTIONS : Instructions completed
+diff --git a/events/s390/z13/unit_masks b/events/s390/z13/unit_masks
+new file mode 100644
+index 0000000..4cf2842
+--- /dev/null
++++ b/events/s390/z13/unit_masks
+@@ -0,0 +1,7 @@
++# Copyright OProfile authors
++# Copyright (c) International Business Machines, 2016.
++# Contributed by Andreas Arnez <arnez@linux.vnet.ibm.com>.
++#
++# S/390 Basic Mode Hardware Sampling unit masks
++#
++include:s390/z10
+diff --git a/libop/op_cpu_type.c b/libop/op_cpu_type.c
+index 7bdde53..e70e4f6 100644
+--- a/libop/op_cpu_type.c
++++ b/libop/op_cpu_type.c
+@@ -123,6 +123,7 @@ static struct cpu_descr const cpu_descrs[MAX_CPU_TYPE] = {
+ 	{ "ARM Cortex-A53", "arm/armv8-ca53", CPU_ARM_V8_CA53, 6},
+ 	{ "Intel Skylake microarchitecture", "i386/skylake", CPU_SKYLAKE, 4 },
+ 	{ "Intel Goldmont microarchitecture", "i386/goldmont", CPU_GOLDMONT, 4 },
++	{ "IBM z13", "s390/z13", CPU_S390_Z13, 1 },
+ };
+  
+ static size_t const nr_cpu_descrs = sizeof(cpu_descrs) / sizeof(struct cpu_descr);
+@@ -680,6 +681,8 @@ static op_cpu _get_s390_cpu_type(void)
+ 	case 2827:
+ 	case 2828:
+ 		return CPU_S390_ZEC12;
++	case 2964:
++		return CPU_S390_Z13;
+ 	}
+ 	return CPU_NO_GOOD;
+ }
+diff --git a/libop/op_cpu_type.h b/libop/op_cpu_type.h
+index 98289c5..4f896a0 100644
+--- a/libop/op_cpu_type.h
++++ b/libop/op_cpu_type.h
+@@ -103,6 +103,7 @@ typedef enum {
+ 	CPU_ARM_V8_CA53, /* ARM Cortex-A53 */
+ 	CPU_SKYLAKE, /** < Intel Skylake microarchitecture */
+ 	CPU_GOLDMONT, /** < Intel Goldmont microarchitecture */
++	CPU_S390_Z13, /** < IBM z13 */
+ 	MAX_CPU_TYPE
+ } op_cpu;
+ 
+diff --git a/libop/op_events.c b/libop/op_events.c
+index cdd0409..ea6ced3 100644
+--- a/libop/op_events.c
++++ b/libop/op_events.c
+@@ -1307,6 +1307,7 @@ void op_default_event(op_cpu cpu_type, struct op_default_event_descr * descr)
+ 		case CPU_S390_Z10:
+ 		case CPU_S390_Z196:
+ 		case CPU_S390_ZEC12:
++		case CPU_S390_Z13:
+ 			descr->name = "CPU_CYCLES";
+ 			descr->count = 4127518;
+ 			break;
+diff --git a/utils/ophelp.c b/utils/ophelp.c
+index 5821593..3cb1c08 100644
+--- a/utils/ophelp.c
++++ b/utils/ophelp.c
+@@ -779,6 +779,7 @@ int main(int argc, char const * argv[])
+ 	case CPU_S390_Z10:
+ 	case CPU_S390_Z196:
+ 	case CPU_S390_ZEC12:
++	case CPU_S390_Z13:
+ 		event_doc = "IBM System z CPU Measurement Facility\n"
+ 				"http://www-01.ibm.com/support/docview.wss"
+ 				"?uid=isg26fcd1cc32246f4c8852574ce0044734a\n";
+-- 
+2.7.4
+
