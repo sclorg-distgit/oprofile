@@ -3,7 +3,7 @@
 Summary: System wide profiler
 Name: %{?scl_prefix}oprofile
 Version: 1.2.0
-Release: 0.20170616git647ca9d0%{?dist}
+Release: 1%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: Development/System
 #
@@ -167,6 +167,9 @@ exit 0
 %endif
 
 %changelog
+* Wed Jul 26 2017 William Cohen <wcohen@redhat.com> - 1.2.0-1
+- Rebase to oprofile-1.2.0.
+
 * Fri Jun 16 2017 Will Cohen <wcohen@redhat.com> - 1.2.0-0.20170616git647ca9d0
 - Rebuild on oprofile git snapshot.
 
