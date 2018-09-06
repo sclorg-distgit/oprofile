@@ -3,13 +3,14 @@
 Summary: System wide profiler
 Name: %{?scl_prefix}oprofile
 Version: 1.3.0
-Release: 1%{?dist}.1
+Release: 2%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: Development/System
 #
 Source0: http://downloads.sourceforge.net/oprofile/oprofile-%{version}.tar.gz
 #FIXME a workaround until java-1.6.0-openjdk-devel is available on all archs
 Source1: openjdk-include.tar.gz
+Patch1: oprofile-ppc_null_event.patch
 Requires: binutils
 Requires: which
 Requires(pre): shadow-utils
@@ -86,6 +87,7 @@ agent library.
 
 %prep
 %setup -q -n oprofile-%{version} -a1
+%patch1 -p1 -b .ppc_null_event
 
 ./autogen.sh
 
@@ -167,6 +169,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Aug 3 2018 William Cohen <wcohen@redhat.com> - 1.3.0-2
+- Fix handling of null event name on ppc. rhbz1609797
+
 * Mon Jul 16 2018 William Cohen <wcohen@redhat.com> - 1.3.0-1
 - Rebase to oprofile-1.3.0.
 
