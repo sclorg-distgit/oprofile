@@ -3,7 +3,7 @@
 Summary: System wide profiler
 Name: %{?scl_prefix}oprofile
 Version: 1.3.0
-Release: 2%{?dist}
+Release: 2.bs1%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: Development/System
 #
