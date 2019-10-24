@@ -1,0 +1,87 @@
+From a3742ff269a8d81cb116ec3dd22ef4516de06399 Mon Sep 17 00:00:00 2001
+From: William Cohen <wcohen@redhat.com>
+Date: Tue, 24 Sep 2019 09:59:12 -0400
+Subject: [PATCH] Use the mmap offset to correctly compute the IP location in a
+ file
+
+Newer versions of binutils are now now splitting the file into
+multiple mmap loads.  The assumption that the mmap for the executable
+code in the file starts at the beginning of the file (that the file
+offset is always zero) is no longer true.  The computation to convert
+the IP address into an offset needs to also use the offset.
+---
+ libperf_events/operf_sfile.h   |  1 +
+ libperf_events/operf_utils.cpp | 10 +++++++---
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/libperf_events/operf_sfile.h b/libperf_events/operf_sfile.h
+index bc003553..4d0576c6 100644
+--- a/libperf_events/operf_sfile.h
++++ b/libperf_events/operf_sfile.h
+@@ -101,6 +101,7 @@ struct operf_transient {
+ 	u32 tgid;
+ 	vma_t start_addr;
+ 	vma_t end_addr;
++	u64 pgoff;
+ 	bool cg;
+ 	// TODO: handle extended
+ 	//void * ext;
+diff --git a/libperf_events/operf_utils.cpp b/libperf_events/operf_utils.cpp
+index 70253495..1e9d1e98 100644
+--- a/libperf_events/operf_utils.cpp
++++ b/libperf_events/operf_utils.cpp
+@@ -320,7 +320,8 @@ static void __handle_mmap_event(event_t * event)
+ 			cout << "PERF_RECORD_MMAP for process " << hex << event->mmap.pid << "/"
+ 			     << event->mmap.tid << ": " << event->mmap.filename << endl;
+ 			cout << "\tstart_addr: " << hex << mapping->start_addr
+-			     << "; end addr: " << mapping->end_addr << endl;
++			     << "; end addr: " << mapping->end_addr
++			     << "; pgoff: " << mapping->pgoff << endl;
+ 		}
+ 
+ 		if (event->header.misc & PERF_RECORD_MISC_USER)
+@@ -465,6 +466,7 @@ static struct operf_transient * __get_operf_trans(struct sample_data * data, boo
+ 		trans.image_len = strlen(trans.image_name);
+ 		trans.start_addr = op_mmap->start_addr;
+ 		trans.end_addr = op_mmap->end_addr;
++		trans.pgoff = op_mmap->pgoff;
+ 		trans.tgid = data->pid;
+ 		trans.tid = data->tid;
+ 		trans.cur_procinfo = proc;
+@@ -474,7 +476,7 @@ static struct operf_transient * __get_operf_trans(struct sample_data * data, boo
+ 		if (trans.in_kernel || trans.is_anon)
+ 			trans.pc = data->ip;
+ 		else
+-			trans.pc = data->ip - trans.start_addr;
++			trans.pc = data->ip + trans.pgoff - trans.start_addr;
+ 
+ 		trans.sample_id = data->id;
+ 		retval = &trans;
+@@ -767,7 +769,7 @@ static int __handle_sample_event(event_t * event, u64 sample_type)
+ 		if (trans.is_anon)
+ 			trans.pc = data.ip;
+ 		else
+-			trans.pc = data.ip - trans.start_addr;
++			trans.pc = data.ip + trans.pgoff - trans.start_addr;
+ 		found_trans = true;
+ 	}
+ 
+@@ -1062,6 +1064,7 @@ void OP_perf_utils::op_get_vsyscall_mapping(pid_t tgid, int output_fd, operf_rec
+ 			size = align_64bit(size);
+ 			mmap.start = start_addr;
+ 			mmap.len = end_addr - mmap.start;
++			mmap.pgoff = offset;
+ 			mmap.pid = tgid;
+ 			mmap.tid = tgid;
+ 			mmap.header.size = (sizeof(mmap) -
+@@ -1133,6 +1136,7 @@ void OP_perf_utils::op_record_process_exec_mmaps(pid_t pid, pid_t tgid, int outp
+ 			size = align_64bit(size);
+ 			mmap.start = start_addr;
+ 			mmap.len = end_addr - mmap.start;
++			mmap.pgoff = offset;
+ 			mmap.pid = tgid;
+ 			mmap.tid = pid;
+ 			mmap.header.size = (sizeof(mmap) -
+-- 
+2.21.0
+

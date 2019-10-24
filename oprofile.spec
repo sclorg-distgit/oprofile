@@ -3,7 +3,7 @@
 Summary: System wide profiler
 Name: %{?scl_prefix}oprofile
 Version: 1.3.0
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: Development/System
 #
@@ -12,6 +12,7 @@ Source0: http://downloads.sourceforge.net/oprofile/oprofile-%{version}.tar.gz
 Source1: openjdk-include.tar.gz
 Patch1: oprofile-ppc_null_event.patch
 Patch2: oprofile-no_orphan.patch
+Patch3: oprofile-offset.patch
 Requires: binutils
 Requires: which
 Requires(pre): shadow-utils
@@ -90,6 +91,7 @@ agent library.
 %setup -q -n oprofile-%{version} -a1
 %patch1 -p1 -b .ppc_null_event
 %patch2 -p1 -b .noorphan
+%patch3 -p1 -b .offset
 
 ./autogen.sh
 
@@ -171,6 +173,9 @@ exit 0
 %endif
 
 %changelog
+* Tue Sep 24 2019 William Cohen <wcohen@redhat.com> - 1.3.0-4
+- Use mmap offset in the computation of pc address. rhbz1745134
+
 * Thu Jul 25 2019 William Cohen <wcohen@redhat.com> - 1.3.0-3
 - Correctly kill child process when error occurs during setup.
 
