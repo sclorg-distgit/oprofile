@@ -1,0 +1,56 @@
+From 8aacb573cd2c4a2f8160d99ff100ad0aa5e7859d Mon Sep 17 00:00:00 2001
+From: Carl Love <cel@us.ibm.com>
+Date: Thu, 25 Jul 2019 10:24:16 -0400
+Subject: [PATCH] Only start the application if the perf events setup was
+ successful
+
+Changes the order of starting the application and performance events.
+
+Given this change we have a new issue.  The issue is the routine
+start_counting() calls fork, creating app_PID process.
+
+The parent then tries to setup the performance events, then if the
+performance events were setup correctly, app_PID is then told to start
+before exiting.  If the performance counter setup fails, the app_PID is
+left running.  The app_PID is never told to start the workload, which is
+correct but we don't record the fact that app_PID is running.  The
+error path then fails to kill app_PID in routine main(), in file
+oprofile-git/pe_counting, at about lie 909 because the if statement
+
+ if (startApp && app_started && (run_result != APP_ABNORMAL_END)) {
+
+is false because app_started is False.
+
+The fix, I believe, is to set app_started to True in the parent code if
+the fork was successful.  With this fix, there is no orphan processes
+left after ocount exits.
+---
+ pe_counting/ocount.cpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/pe_counting/ocount.cpp b/pe_counting/ocount.cpp
+index 77177176..2470745d 100644
+--- a/pe_counting/ocount.cpp
++++ b/pe_counting/ocount.cpp
+@@ -242,6 +242,10 @@ bool start_counting(void)
+ 
+ 	// parent
+ 	int startup;
++	if ( app_PID != -1)
++		// app_PID child process created successfully
++		app_started = true;
++
+ 	if (startApp) {
+ 		if (read(app_ready_pipe[0], &startup, sizeof(startup)) == -1) {
+ 			perror("Internal error on app_ready_pipe");
+@@ -297,7 +301,6 @@ bool start_counting(void)
+ 			perror("Internal error on start_app_pipe");
+ 			return false;
+ 		}
+-		app_started = true;
+ 	}
+ 
+ 	return ret;
+-- 
+2.21.0
+
